@@ -58,10 +58,12 @@ if [ "$needs_reinstall" -eq 0 ]; then
 fi
 
 # 3. Smoke test : ld-musl arrive a charger le binaire ?
+#    timeout dur + stdin ferme + convar noTTY : sur Enhanced, --version peut booter
+#    le serveur complet au lieu de repondre, sans garde-fou ca bloquait le demarrage
 if [ "$needs_reinstall" -eq 0 ]; then
-  test_out=$("$LDMUSL" \
+  test_out=$(timeout 15 "$LDMUSL" \
     --library-path "${ALPINE_DIR}/usr/lib/v8/:${ALPINE_DIR}/lib/:${ALPINE_DIR}/usr/lib/" \
-    -- "$SERVER_BIN" --version 2>&1 | head -50 || true)
+    -- "$SERVER_BIN" +set con_disableNonTTYReads true --version </dev/null 2>&1 | head -50 || true)
   if echo "$test_out" | grep -qE "Exec format error|symbol not found|Error relocating|Error loading shared library"; then
     needs_reinstall=1
     reason="smoke test echoue (libs cassees)"
